@@ -1,0 +1,2410 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Editor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.4/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --toolbar-height: 46px;
+            --accent: #89b4fa;
+            --accent-hover: #74c7ec;
+            --green: #a6e3a1;
+            --peach: #fab387;
+            --red: #f38ba8;
+        }
+
+        /* ══════════════════════════════════════
+           THEME: DARK (default)
+           ══════════════════════════════════════ */
+        [data-theme="dark"] {
+            --bg-primary: #1e1e2e;
+            --bg-secondary: #181825;
+            --bg-surface: #313244;
+            --bg-hover: #45475a;
+            --text-primary: #cdd6f4;
+            --text-secondary: #a6adc8;
+            --text-muted: #6c7086;
+            --border: #45475a;
+            --editor-bg: #1e1e2e;
+            --editor-text: #cdd6f4;
+            --preview-bg: #1e1e2e;
+            --preview-text: #cdd6f4;
+            --preview-heading: #cdd6f4;
+            --preview-code-bg: #313244;
+            --preview-pre-bg: #11111b;
+            --preview-pre-text: #cdd6f4;
+            --preview-blockquote-bg: #313244;
+            --preview-blockquote-text: #a6adc8;
+            --preview-table-border: #45475a;
+            --preview-th-bg: #313244;
+            --preview-link: #89b4fa;
+            --preview-hr: #45475a;
+            --accent: #89b4fa;
+            --theme-btn-dark-bg: var(--accent); --theme-btn-dark-text: #1e1e2e;
+            --theme-btn-light-bg: var(--bg-surface); --theme-btn-light-text: var(--text-secondary);
+            --theme-btn-warm-bg: var(--bg-surface); --theme-btn-warm-text: var(--text-secondary);
+        }
+
+        /* ══════════════════════════════════════
+           THEME: LIGHT
+           ══════════════════════════════════════ */
+        [data-theme="light"] {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #e8e8e8;
+            --bg-surface: #dcdcdc;
+            --bg-hover: #cfcfcf;
+            --text-primary: #1e1e1e;
+            --text-secondary: #555555;
+            --text-muted: #999999;
+            --border: #cccccc;
+            --editor-bg: #ffffff;
+            --editor-text: #1e1e1e;
+            --preview-bg: #ffffff;
+            --preview-text: #1e1e1e;
+            --preview-heading: #1e1e1e;
+            --preview-code-bg: #f0f0f0;
+            --preview-pre-bg: #282a36;
+            --preview-pre-text: #f8f8f2;
+            --preview-blockquote-bg: #f0f4ff;
+            --preview-blockquote-text: #444;
+            --preview-table-border: #ddd;
+            --preview-th-bg: #f5f6f8;
+            --preview-link: #2563eb;
+            --preview-hr: #e0e0e0;
+            --accent: #2563eb;
+            --theme-btn-dark-bg: var(--bg-surface); --theme-btn-dark-text: var(--text-secondary);
+            --theme-btn-light-bg: var(--accent); --theme-btn-light-text: #fff;
+            --theme-btn-warm-bg: var(--bg-surface); --theme-btn-warm-text: var(--text-secondary);
+        }
+
+        /* ══════════════════════════════════════
+           THEME: WARM
+           ══════════════════════════════════════ */
+        [data-theme="warm"] {
+            --bg-primary: #fdf6ec;
+            --bg-secondary: #f5ead6;
+            --bg-surface: #ecdcc4;
+            --bg-hover: #e2cfb0;
+            --text-primary: #3d3429;
+            --text-secondary: #6b5d4d;
+            --text-muted: #a08e79;
+            --border: #ddd0bc;
+            --editor-bg: #fefaf3;
+            --editor-text: #3d3429;
+            --preview-bg: #fefaf3;
+            --preview-text: #3d3429;
+            --preview-heading: #3d3429;
+            --preview-code-bg: #f3e8d5;
+            --preview-pre-bg: #3d3429;
+            --preview-pre-text: #fdf6ec;
+            --preview-blockquote-bg: #f5ead6;
+            --preview-blockquote-text: #6b5d4d;
+            --preview-table-border: #ddd0bc;
+            --preview-th-bg: #f3e8d5;
+            --preview-link: #b5651d;
+            --preview-hr: #ddd0bc;
+            --accent: #b5651d;
+            --theme-btn-dark-bg: var(--bg-surface); --theme-btn-dark-text: var(--text-secondary);
+            --theme-btn-light-bg: var(--bg-surface); --theme-btn-light-text: var(--text-secondary);
+            --theme-btn-warm-bg: var(--accent); --theme-btn-warm-text: #fff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* ── Toolbar ── */
+        #toolbar {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            height: var(--toolbar-height);
+            flex-shrink: 0;
+            overflow-x: auto;
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        #toolbar button, #toolbar select {
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 12.5px;
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        #toolbar button:hover, #toolbar select:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 22px;
+            background: var(--border);
+            margin: 0 4px;
+            flex-shrink: 0;
+        }
+
+        .toolbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-save {
+            background: var(--green) !important;
+            color: #1e1e2e !important;
+            border-color: var(--green) !important;
+            font-weight: 500;
+        }
+        .btn-save:hover { opacity: 0.85; }
+
+        /* ── Theme Switcher ── */
+        .theme-group {
+            display: flex;
+            gap: 0;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .theme-btn {
+            padding: 5px 10px !important;
+            border: none !important;
+            border-radius: 0 !important;
+            font-size: 12px !important;
+            transition: all 0.2s !important;
+            position: relative;
+        }
+        .theme-btn-dark  { background: var(--theme-btn-dark-bg) !important; color: var(--theme-btn-dark-text) !important; }
+        .theme-btn-light { background: var(--theme-btn-light-bg) !important; color: var(--theme-btn-light-text) !important; }
+        .theme-btn-warm  { background: var(--theme-btn-warm-bg) !important; color: var(--theme-btn-warm-text) !important; }
+        .theme-btn:hover { filter: brightness(1.1); }
+
+        /* ── Main Layout ── */
+        #main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ── Sidebar ── */
+        #sidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.25s ease, opacity 0.25s ease, background 0.3s, border-color 0.3s;
+        }
+        #sidebar.collapsed {
+            margin-left: calc(-1 * var(--sidebar-width));
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #sidebar-header {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        #sidebar-header h3 {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #sidebar-header h3 svg { width: 15px; height: 15px; }
+
+        #btn-open-folder {
+            width: 100%;
+            padding: 7px 10px;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 12.5px;
+            border: 1px dashed var(--accent);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--accent);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        #btn-open-folder:hover { background: rgba(137, 180, 250, 0.1); }
+
+        #folder-path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 4px 6px;
+            background: var(--bg-surface);
+            border-radius: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: none;
+        }
+
+        /* ── Search Box ── */
+        #search-container {
+            padding: 6px 12px 2px;
+            display: none;
+        }
+        #search-container.show { display: block; }
+
+        #search-input {
+            width: 100%;
+            padding: 6px 10px 6px 30px;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 12.5px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        #search-input:focus { border-color: var(--accent); }
+        #search-input::placeholder { color: var(--text-muted); }
+
+        .search-wrapper {
+            position: relative;
+        }
+        .search-icon {
+            position: absolute;
+            left: 9px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 13px;
+            height: 13px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+        .search-clear {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: none;
+            font-size: 14px;
+            line-height: 1;
+            padding: 0;
+            border-radius: 50%;
+        }
+        .search-clear:hover { color: var(--text-primary); background: var(--bg-hover); }
+        .search-clear.show { display: block; }
+
+        /* ── File List ── */
+        #file-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 6px 0;
+        }
+        #file-list::-webkit-scrollbar { width: 5px; }
+        #file-list::-webkit-scrollbar-track { background: transparent; }
+        #file-list::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 3px; }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 14px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-secondary);
+            transition: all 0.12s;
+            border-left: 3px solid transparent;
+        }
+        .file-item:hover {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+        }
+        .file-item.active {
+            background: rgba(137, 180, 250, 0.08);
+            color: var(--accent);
+            border-left-color: var(--accent);
+        }
+        .file-item svg {
+            width: 14px; height: 14px;
+            flex-shrink: 0; opacity: 0.6;
+        }
+        .file-item.active svg { opacity: 1; }
+        .file-item span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .file-item .highlight {
+            background: rgba(249, 226, 175, 0.35);
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+
+        .file-count {
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 6px 14px 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .empty-state {
+            padding: 30px 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12.5px;
+            line-height: 1.6;
+        }
+        .empty-state svg {
+            width: 36px; height: 36px;
+            margin-bottom: 10px; opacity: 0.3;
+        }
+
+        /* ── Editor Container ── */
+        #editor-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ── Editor Wrapper (line-numbers + textarea) ── */
+        #editor-wrapper {
+            flex: 1;
+            display: flex;
+            min-width: 0;
+            background: var(--editor-bg);
+            transition: background 0.3s;
+        }
+        #editor-wrapper.hidden-editor {
+            display: none;
+        }
+
+        #line-numbers {
+            flex-shrink: 0;
+            padding: 16px 10px 16px 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            text-align: right;
+            color: var(--text-muted);
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            user-select: none;
+            overflow: hidden;
+            white-space: pre;
+            min-width: 44px;
+            transition: background 0.3s, color 0.3s, border-color 0.3s;
+            /* 避免 textarea 同步滾動時出現 1px 抖動 */
+            box-sizing: border-box;
+        }
+        #line-numbers .ln {
+            display: block;
+            padding: 0 2px;
+        }
+        #line-numbers .ln.active {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        #input-area {
+            flex: 1;
+            min-width: 0;
+            padding: 16px;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            background: var(--editor-bg);
+            color: var(--editor-text);
+            tab-size: 4;
+            transition: background 0.3s, color 0.3s;
+            /* 關閉自動換行，行號才能對齊；若未來要開軟換行，改用下方 wrap 版本 */
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+        #input-area::placeholder { color: var(--text-muted); }
+
+        /* Editor hidden mode (同時隱藏 textarea 與行號) */
+        #input-area.hidden-editor {
+            display: none;
+        }
+        .editor-divider.hidden-editor {
+            display: none;
+        }
+
+        .editor-divider {
+            width: 1px;
+            background: var(--border);
+            cursor: col-resize;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        .editor-divider:hover { background: var(--accent); }
+
+        /* ── Folder Tree ── */
+        #folder-tree {
+            display: none;
+            padding: 0 0 4px;
+            border-bottom: 1px solid var(--border);
+        }
+        #folder-tree.show { display: block; }
+
+        .tree-breadcrumb {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            gap: 2px;
+            flex-wrap: wrap;
+        }
+        .breadcrumb-item {
+            font-size: 12px;
+            color: var(--accent);
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: background 0.12s;
+            white-space: nowrap;
+        }
+        .breadcrumb-item:hover { background: var(--bg-surface); }
+        .breadcrumb-item.current {
+            color: var(--text-primary);
+            font-weight: 600;
+            cursor: default;
+        }
+        .breadcrumb-item.current:hover { background: transparent; }
+        .breadcrumb-sep {
+            color: var(--text-muted);
+            font-size: 11px;
+            user-select: none;
+        }
+
+        .tree-subfolder-list {
+            max-height: 180px;
+            overflow-y: auto;
+            padding: 0 6px 2px;
+        }
+        .tree-subfolder-list::-webkit-scrollbar { width: 4px; }
+        .tree-subfolder-list::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 2px; }
+
+        .tree-folder-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 12.5px;
+            color: var(--text-secondary);
+            border-radius: 5px;
+            transition: all 0.1s;
+        }
+        .tree-folder-item:hover {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+        }
+        .tree-folder-item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.6; }
+        .tree-folder-item:hover svg { opacity: 1; }
+        .tree-folder-item span {
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+        .tree-parent-item {
+            color: var(--accent);
+        }
+        .tree-parent-item svg { opacity: 0.8; }
+
+        #preview-area {
+            flex: 1;
+            padding: 20px 28px;
+            overflow-y: auto;
+            background: var(--preview-bg);
+            color: var(--preview-text);
+            font-size: 15px;
+            line-height: 1.75;
+            transition: background 0.3s, color 0.3s;
+        }
+        #preview-area::-webkit-scrollbar { width: 6px; }
+        #preview-area::-webkit-scrollbar-track { background: transparent; }
+        #preview-area::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 3px; }
+
+        /* Drag-to-scroll cursors */
+        .drag-scrollable { cursor: default; }
+        .drag-scrollable.dragging { cursor: grabbing; user-select: none; }
+        .drag-scrollable.dragging * { user-select: none; }
+
+        /* ── Preview Typography (all themed) ── */
+        #preview-area h1, #preview-area h2, #preview-area h3,
+        #preview-area h4, #preview-area h5, #preview-area h6 {
+            margin-top: 1.4em; margin-bottom: 0.6em;
+            font-weight: 700; line-height: 1.3;
+            color: var(--preview-heading);
+        }
+        #preview-area h1 { font-size: 1.8em; border-bottom: 2px solid var(--preview-hr); padding-bottom: 0.3em; }
+        #preview-area h2 { font-size: 1.45em; border-bottom: 1px solid var(--preview-hr); padding-bottom: 0.25em; }
+        #preview-area h3 { font-size: 1.2em; }
+        #preview-area p { margin-bottom: 0.9em; }
+        #preview-area ul, #preview-area ol { padding-left: 1.8em; margin-bottom: 0.9em; }
+        #preview-area li { margin-bottom: 0.3em; }
+        #preview-area code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--preview-code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.88em;
+        }
+        #preview-area pre {
+            background: var(--preview-pre-bg);
+            color: var(--preview-pre-text);
+            padding: 14px 18px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 1em;
+            position: relative;
+        }
+        #preview-area pre code {
+            background: none; padding: 0; color: inherit;
+        }
+
+        /* ── Code Block Copy Button ── */
+        #preview-area pre,
+        #preview-area-b pre,
+        #fullscreen-content pre {
+            position: relative;
+        }
+        .code-copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-family: 'Inter', -apple-system, sans-serif;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.85);
+            border-radius: 6px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s ease, background 0.15s ease, transform 0.1s ease;
+            z-index: 2;
+            user-select: none;
+            line-height: 1.4;
+        }
+        pre:hover > .code-copy-btn {
+            opacity: 1;
+        }
+        .code-copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .code-copy-btn:active {
+            transform: scale(0.95);
+        }
+        .code-copy-btn.copied {
+            background: rgba(76, 175, 80, 0.4);
+            border-color: rgba(76, 175, 80, 0.6);
+            color: #fff;
+            opacity: 1;
+        }
+        /* 淺色主題下 frontmatter-block 用淺背景，按鈕需深色文字 */
+        .frontmatter-block .code-copy-btn {
+            background: rgba(0, 0, 0, 0.06);
+            border-color: rgba(0, 0, 0, 0.15);
+            color: var(--preview-text);
+        }
+        .frontmatter-block .code-copy-btn:hover {
+            background: rgba(0, 0, 0, 0.12);
+        }
+        #preview-area blockquote {
+            border-left: 4px solid var(--accent);
+            padding: 8px 16px;
+            margin: 0 0 1em 0;
+            background: var(--preview-blockquote-bg);
+            color: var(--preview-blockquote-text);
+        }
+        #preview-area table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
+        #preview-area th, #preview-area td {
+            border: 1px solid var(--preview-table-border);
+            padding: 8px 12px; text-align: left;
+        }
+        #preview-area th { background: var(--preview-th-bg); font-weight: 600; }
+        #preview-area hr { border: none; border-top: 2px solid var(--preview-hr); margin: 1.5em 0; }
+        #preview-area a { color: var(--preview-link); }
+        #preview-area img { max-width: 100%; border-radius: 6px; }
+        #preview-area u { text-decoration: underline; }
+
+        /* ── Fullscreen ── */
+        #fullscreen-preview {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: var(--preview-bg);
+            color: var(--preview-text);
+            z-index: 2000;
+            overflow-y: auto;
+            padding: 40px 60px;
+            font-size: 15px;
+            line-height: 1.75;
+            transition: background 0.3s, color 0.3s;
+        }
+        #fullscreen-preview h1, #fullscreen-preview h2, #fullscreen-preview h3,
+        #fullscreen-preview h4, #fullscreen-preview h5, #fullscreen-preview h6 {
+            margin-top: 1.2em; margin-bottom: 0.5em; color: var(--preview-heading);
+        }
+        #fullscreen-preview h1 { border-bottom: 2px solid var(--preview-hr); padding-bottom: 0.3em; }
+        #fullscreen-preview h2 { border-bottom: 1px solid var(--preview-hr); padding-bottom: 0.2em; }
+        #fullscreen-preview pre { background: var(--preview-pre-bg); color: var(--preview-pre-text); padding: 14px; border-radius: 8px; overflow-x: auto; }
+        #fullscreen-preview pre code { background: none; color: inherit; }
+        #fullscreen-preview code { font-family: 'JetBrains Mono', monospace; background: var(--preview-code-bg); padding: 2px 5px; border-radius: 4px; font-size: 0.88em; }
+        #fullscreen-preview blockquote { border-left: 4px solid var(--accent); padding: 8px 16px; background: var(--preview-blockquote-bg); color: var(--preview-blockquote-text); }
+        #fullscreen-preview table { border-collapse: collapse; width: 100%; }
+        #fullscreen-preview th, #fullscreen-preview td { border: 1px solid var(--preview-table-border); padding: 8px 12px; }
+        #fullscreen-preview th { background: var(--preview-th-bg); }
+        #fullscreen-preview a { color: var(--preview-link); }
+        #fullscreen-preview hr { border: none; border-top: 2px solid var(--preview-hr); }
+        #fullscreen-close {
+            position: fixed; top: 14px; right: 20px; z-index: 2001;
+            width: 36px; height: 36px; border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--bg-surface); color: var(--text-primary);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        #fullscreen-close:hover { background: var(--bg-hover); }
+
+        /* ── Status bar ── */
+        #status-bar {
+            height: 24px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+            gap: 16px;
+            flex-shrink: 0;
+            transition: background 0.3s, border-color 0.3s;
+        }
+        .status-item { display: flex; align-items: center; gap: 4px; }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed; bottom: 40px; left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            padding: 8px 20px;
+            background: var(--bg-surface);
+            color: var(--green);
+            border: 1px solid var(--green);
+            border-radius: 8px;
+            font-size: 13px;
+            z-index: 3000;
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .unsaved-dot {
+            display: inline-block; width: 7px; height: 7px;
+            background: var(--peach); border-radius: 50%;
+            margin-left: 4px; vertical-align: middle;
+        }
+
+        /* ── Front Matter Block ── */
+        .frontmatter-block {
+            background: var(--preview-code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 1.2em;
+            overflow: hidden;
+        }
+        .frontmatter-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 6px 14px;
+            background: var(--bg-hover);
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+        .frontmatter-block pre {
+            margin: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            padding: 12px 16px !important;
+        }
+        .frontmatter-block pre code {
+            background: transparent !important;
+            color: var(--preview-text) !important;
+            font-size: 13px;
+        }
+
+        /* ── Dual Preview Mode ── */
+        #preview-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        /* Row: 左預覽 ＋ 分隔線 ＋ 右預覽 */
+        #preview-row {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        /* 單預覽：原本的 preview-area 直接 flex:1 */
+        #preview-container.single #preview-area {
+            flex: 1;
+        }
+        #preview-container.single #preview-divider,
+        #preview-container.single #preview-area-b-wrap {
+            display: none;
+        }
+        /* 單預覽時 wrap 用 display:contents 讓 preview-area 直接繼承 flex */
+        #preview-container.single #preview-area-a-wrap {
+            display: contents;
+        }
+
+        /* 左側 wrap（雙預覽） */
+        #preview-area-a-wrap {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 左側標題列：雙預覽時才顯示 */
+        /* 左右標題列共用樣式 */
+        #preview-a-header,
+        #preview-b-header {
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            gap: 8px;
+            flex-shrink: 0;
+            height: 30px;
+            font-size: 11px;
+            color: var(--text-muted);
+            box-sizing: border-box;
+        }
+
+        /* 左側標題列預設隱藏，雙預覽才顯示 */
+        #preview-a-header { display: none; }
+        #preview-container.dual #preview-a-header { display: flex; }
+
+        /* 檔名共用 */
+        .pb-filename {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            cursor: default;
+        }
+
+        /* 同步捲動 label（內嵌在右側標題列） */
+        .sync-scroll-label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .sync-scroll-label input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 12px; height: 12px;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        /* 載入按鈕 */
+        .pb-load-btn {
+            font-size: 11px;
+            padding: 3px 8px;
+            border: 1px dashed var(--accent);
+            border-radius: 4px;
+            background: transparent;
+            color: var(--accent);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.15s;
+            flex-shrink: 0;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        .pb-load-btn:hover { background: rgba(137,180,250,0.12); }
+
+        /* 雙預覽 */
+        #preview-container.dual #preview-area { flex: 1; min-width: 0; }
+
+        #preview-divider {
+            width: 5px;
+            background: var(--border);
+            cursor: col-resize;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        #preview-divider:hover,
+        #preview-divider.active { background: var(--accent); }
+
+        #preview-area-b-wrap {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 右側預覽內容區（樣式與左側完全一致） */
+        #preview-area-b {
+            flex: 1;
+            padding: 20px 28px;
+            overflow-y: auto;
+            background: var(--preview-bg);
+            color: var(--preview-text);
+            font-size: 15px;
+            line-height: 1.75;
+            transition: background 0.3s, color 0.3s;
+        }
+        #preview-area-b::-webkit-scrollbar { width: 6px; }
+        #preview-area-b::-webkit-scrollbar-track { background: transparent; }
+        #preview-area-b::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 3px; }
+
+        /* 右側預覽的 typography（與左側同步） */
+        #preview-area-b h1, #preview-area-b h2, #preview-area-b h3,
+        #preview-area-b h4, #preview-area-b h5, #preview-area-b h6 {
+            margin-top: 1.4em; margin-bottom: 0.6em;
+            font-weight: 700; line-height: 1.3;
+            color: var(--preview-heading);
+        }
+        #preview-area-b h1 { font-size: 1.8em; border-bottom: 2px solid var(--preview-hr); padding-bottom: 0.3em; }
+        #preview-area-b h2 { font-size: 1.45em; border-bottom: 1px solid var(--preview-hr); padding-bottom: 0.25em; }
+        #preview-area-b h3 { font-size: 1.2em; }
+        #preview-area-b p { margin-bottom: 0.9em; }
+        #preview-area-b ul, #preview-area-b ol { padding-left: 1.8em; margin-bottom: 0.9em; }
+        #preview-area-b li { margin-bottom: 0.3em; }
+        #preview-area-b code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--preview-code-bg);
+            padding: 2px 6px; border-radius: 4px; font-size: 0.88em;
+        }
+        #preview-area-b pre {
+            background: var(--preview-pre-bg); color: var(--preview-pre-text);
+            padding: 14px 18px; border-radius: 8px; overflow-x: auto; margin-bottom: 1em;
+        }
+        #preview-area-b pre code { background: none; padding: 0; color: inherit; }
+        #preview-area-b blockquote {
+            border-left: 4px solid var(--accent); padding: 8px 16px;
+            margin: 0 0 1em 0; background: var(--preview-blockquote-bg); color: var(--preview-blockquote-text);
+        }
+        #preview-area-b table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
+        #preview-area-b th, #preview-area-b td {
+            border: 1px solid var(--preview-table-border); padding: 8px 12px; text-align: left;
+        }
+        #preview-area-b th { background: var(--preview-th-bg); font-weight: 600; }
+        #preview-area-b hr { border: none; border-top: 2px solid var(--preview-hr); margin: 1.5em 0; }
+        #preview-area-b a { color: var(--preview-link); }
+        #preview-area-b img { max-width: 100%; border-radius: 6px; }
+        #preview-area-b u { text-decoration: underline; }
+        #preview-area-b .frontmatter-block {
+            background: var(--preview-code-bg); border: 1px solid var(--border);
+            border-radius: 8px; margin-bottom: 1.2em; overflow: hidden;
+        }
+        #preview-area-b .frontmatter-label {
+            font-size: 11px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.5px; padding: 6px 14px;
+            background: var(--bg-hover); color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+        #preview-area-b .frontmatter-block pre {
+            margin: 0 !important; border-radius: 0 !important;
+            background: transparent !important; padding: 12px 16px !important;
+        }
+        #preview-area-b .frontmatter-block pre code {
+            background: transparent !important; color: var(--preview-text) !important; font-size: 13px;
+        }
+
+        /* 右側空白提示 */
+        #preview-b-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            font-size: 13px;
+            gap: 10px;
+            text-align: center;
+            padding: 20px;
+        }
+        #preview-b-empty svg { width: 40px; height: 40px; opacity: 0.25; }
+
+        /* ── Drag & Drop Overlay 雙預覽版 ── */
+        #drop-overlay-dual {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 4000;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+        }
+        #drop-overlay-dual.show { display: flex; }
+
+        .drop-half {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+        .drop-half-left  { border-right: none; }
+        .drop-half-right { border-left: none; }
+
+        /* 高亮：游標在該側時 */
+        .drop-half.active {
+            background: rgba(137, 180, 250, 0.18);
+        }
+        [data-theme="light"] .drop-half.active {
+            background: rgba(37, 99, 235, 0.13);
+        }
+        [data-theme="warm"] .drop-half.active {
+            background: rgba(181, 101, 29, 0.13);
+        }
+
+        .drop-half-divider {
+            width: 3px;
+            height: 100%;
+            background: var(--accent);
+            opacity: 0.5;
+            flex-shrink: 0;
+        }
+
+        .drop-half-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 40px 50px;
+            border: 3px dashed var(--accent);
+            border-radius: 16px;
+            color: var(--accent);
+            text-align: center;
+            opacity: 0.5;
+            transition: opacity 0.15s, transform 0.15s;
+        }
+        .drop-half.active .drop-half-inner {
+            opacity: 1;
+            transform: scale(1.04);
+        }
+        .drop-half-inner svg {
+            width: 40px; height: 40px;
+        }
+        .drop-half-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .drop-half-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ── Drag & Drop Overlay ── */
+        #drop-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 4000;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+        #drop-overlay.show {
+            display: flex;
+        }
+        .drop-box {
+            background: var(--bg-surface);
+            border: 3px dashed var(--accent);
+            border-radius: 16px;
+            padding: 48px 60px;
+            text-align: center;
+            color: var(--accent);
+            pointer-events: none;
+        }
+        .drop-box svg {
+            width: 48px; height: 48px;
+            margin-bottom: 12px;
+            opacity: 0.8;
+        }
+        .drop-box .drop-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .drop-box .drop-hint {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+<!-- Toolbar -->
+<div id="toolbar">
+    <button onclick="toggleSidebar()" title="切換側邊欄">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+    </button>
+    <button onclick="toggleEditor()" id="btn-toggle-editor" title="切換編輯區">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="3" y1="3" x2="7" y2="3" stroke="none"/><rect x="3" y="3" width="9" height="18" rx="2" fill="currentColor" opacity="0.15"/></svg>
+    </button>
+    <button onclick="toggleDualPreview()" id="btn-dual-preview" title="並排雙預覽">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="9" height="18" rx="1.5"/>
+            <rect x="13" y="3" width="9" height="18" rx="1.5"/>
+        </svg>
+    </button>
+    <div class="toolbar-divider"></div>
+    <select onchange="addMarkdown(this.value); this.selectedIndex=0;">
+        <option value="">標題</option>
+        <option value="# ">H1</option>
+        <option value="## ">H2</option>
+        <option value="### ">H3</option>
+        <option value="#### ">H4</option>
+        <option value="##### ">H5</option>
+        <option value="###### ">H6</option>
+    </select>
+    <button onclick="addMarkdown('**', '**')">粗體</button>
+    <button onclick="addMarkdown('*', '*')">斜體</button>
+    <button onclick="addMarkdown('<u>', '</u>')">底線</button>
+    <button onclick="addMarkdown('~~', '~~')">刪除線</button>
+    <button onclick="addMarkdown('---\n')">分隔線</button>
+    <button onclick="addMarkdown('```\n', '\n```')">程式區塊</button>
+    <select onchange="insertLink(this.value); this.selectedIndex=0;">
+        <option value="">連結</option>
+        <option value="text">文字連結</option>
+        <option value="url">網址連結</option>
+        <option value="image">圖片</option>
+    </select>
+    <button onclick="insertTable()">表格</button>
+    <div class="toolbar-divider"></div>
+    <button onclick="toggleFullscreen()">全螢幕</button>
+    <button onclick="printContent()">列印</button>
+    <div class="toolbar-divider"></div>
+    <button class="btn-save" onclick="saveFile()" title="Ctrl+S">💾 儲存</button>
+    <button onclick="saveAsFile()" title="另存新檔">📄 另存新檔</button>
+    <button onclick="copyMarkdown()" title="複製 Markdown 到剪貼簿">📋 複製 MD</button>
+
+    <div class="toolbar-right">
+        <div class="theme-group">
+            <button class="theme-btn theme-btn-dark" onclick="setTheme('dark')">🌙 暗色</button>
+            <button class="theme-btn theme-btn-light" onclick="setTheme('light')">☀️ 亮色</button>
+            <button class="theme-btn theme-btn-warm" onclick="setTheme('warm')">🍂 暖色</button>
+        </div>
+    </div>
+</div>
+
+<!-- Main -->
+<div id="main-container">
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                檔案總管
+            </h3>
+            <button id="btn-open-folder" onclick="openFolder()">📂 選擇資料夾</button>
+            <div id="folder-path"></div>
+        </div>
+
+        <!-- Folder Tree Navigation -->
+        <div id="folder-tree">
+            <div id="tree-breadcrumb" class="tree-breadcrumb"></div>
+            <div id="tree-subfolder-list" class="tree-subfolder-list"></div>
+        </div>
+
+        <!-- Search -->
+        <div id="search-container">
+            <div class="search-wrapper">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="search-input" placeholder="搜尋檔案名稱..." oninput="onSearchInput()" onkeydown="onSearchKeydown(event)">
+                <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
+            </div>
+        </div>
+
+        <div id="file-list">
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                <div>點擊上方按鈕<br>選擇包含 .md 檔案的資料夾</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor -->
+    <div id="editor-container">
+        <div id="editor-wrapper">
+            <div id="line-numbers" aria-hidden="true"><span class="ln">1</span></div>
+            <textarea id="input-area"
+                      oninput="onEditorInput()"
+                      onscroll="syncLineNumbersScroll()"
+                      onkeyup="updateActiveLine()"
+                      onclick="updateActiveLine()"
+                      placeholder="在這裡輸入 Markdown 內容..."
+                      spellcheck="false"></textarea>
+        </div>
+        <div class="editor-divider"></div>
+
+        <!-- Preview Container (wraps both single & dual preview) -->
+        <div id="preview-container" class="single">
+
+            <!-- Row: 左預覽 ＋ 分隔線 ＋ 右預覽 -->
+            <div id="preview-row">
+                <!-- 左側預覽（主要，跟著編輯器） -->
+                <div id="preview-area-a-wrap">
+                    <div id="preview-a-header">
+                        <span class="pb-filename" id="preview-a-filename">尚未載入檔案</span>
+                    </div>
+                    <div id="preview-area"></div>
+                </div>
+
+                <!-- 中間拖曳分隔線 -->
+                <div id="preview-divider"></div>
+
+                <!-- 右側預覽 -->
+                <div id="preview-area-b-wrap">
+                    <div id="preview-b-header">
+                        <span class="pb-filename" id="preview-b-filename">尚未載入檔案</span>
+                        <label class="sync-scroll-label" for="chk-sync-scroll">
+                            <input type="checkbox" id="chk-sync-scroll" checked>
+                            同步捲動
+                        </label>
+                        <button class="pb-load-btn" id="btn-auth-folder-b" onclick="authorizeRightFolder()" title="授權一個資料夾作為路徑基準，之後拖入/載入該資料夾內的檔案可顯示完整相對路徑">📁 授權資料夾</button>
+                        <button class="pb-load-btn" onclick="loadFileToPreviewB()">📂 載入 MD</button>
+                    </div>
+                    <div id="preview-area-b">
+                        <div id="preview-b-empty">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                                <polyline points="13 2 13 9 20 9"/>
+                            </svg>
+                            <div>點擊「📂 載入 MD」<br>或拖曳檔案到此側</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Bar -->
+<div id="status-bar">
+    <span class="status-item" id="status-file">未開啟檔案</span>
+    <span class="status-item" id="status-chars">0 字元</span>
+    <span class="status-item" id="status-lines">0 行</span>
+    <span class="status-item" id="status-search" style="display:none;"></span>
+</div>
+
+<!-- Fullscreen -->
+<div id="fullscreen-preview">
+    <button id="fullscreen-close" onclick="toggleFullscreen()">✕</button>
+    <div id="fullscreen-content"></div>
+</div>
+
+<!-- Drop Overlay (單預覽模式) -->
+<div id="drop-overlay">
+    <div class="drop-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <div class="drop-title">拖放 .md 檔案到這裡</div>
+        <div class="drop-hint">放開滑鼠即可載入檔案內容</div>
+    </div>
+</div>
+
+<!-- Drop Overlay 雙預覽模式（左右分割） -->
+<div id="drop-overlay-dual">
+    <div class="drop-half drop-half-left" id="drop-half-left">
+        <div class="drop-half-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <div class="drop-half-title">左側預覽</div>
+            <div class="drop-half-hint">放開以載入左側</div>
+        </div>
+    </div>
+    <div class="drop-half-divider"></div>
+    <div class="drop-half drop-half-right" id="drop-half-right">
+        <div class="drop-half-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <div class="drop-half-title">右側預覽</div>
+            <div class="drop-half-hint">放開以載入右側</div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script>
+    // ══════════════════════════
+    //  State
+    // ══════════════════════════
+    let folderHandle = null;
+    let rootHandle = null;        // the top-level picked folder
+    let pathStack = [];           // array of { name, handle } for breadcrumb
+    let subfolders = [];          // subfolder handles in current dir
+    let fileHandles = [];
+    let filteredIndices = [];
+    let currentFileHandle = null;
+    let currentFileName = '';
+    let currentFilePath = ''; // 相對於根資料夾的路徑，例如 SUB_1\CLAUDE.md
+    let isUnsaved = false;
+    let searchTerm = '';
+    let editorHidden = true;
+    let rightRootHandle = null;  // 右側預覽獨立授權的資料夾（用於路徑解析）
+
+    // ══════════════════════════
+    //  Theme
+    // ══════════════════════════
+    function setTheme(theme) {
+        document.body.setAttribute('data-theme', theme);
+        localStorage.setItem('md-editor-theme', theme);
+    }
+
+    // Restore saved theme
+    (function() {
+        const saved = localStorage.getItem('md-editor-theme');
+        if (saved) document.body.setAttribute('data-theme', saved);
+    })();
+
+    // ══════════════════════════
+    //  IndexedDB: persist folder handle
+    // ══════════════════════════
+    const IDB_NAME = 'md-editor-store';
+    const IDB_STORE = 'handles';
+    const IDB_KEY = 'lastFolder';
+
+    function openIDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(IDB_NAME, 1);
+            req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function saveFolderHandle(handle) {
+        try {
+            const db = await openIDB();
+            const tx = db.transaction(IDB_STORE, 'readwrite');
+            tx.objectStore(IDB_STORE).put(handle, IDB_KEY);
+            await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+            db.close();
+        } catch (e) { console.warn('無法儲存資料夾記錄:', e); }
+    }
+
+    async function loadFolderHandle() {
+        try {
+            const db = await openIDB();
+            const tx = db.transaction(IDB_STORE, 'readonly');
+            const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+            return new Promise((resolve, reject) => {
+                req.onsuccess = () => { db.close(); resolve(req.result || null); };
+                req.onerror = () => { db.close(); reject(req.error); };
+            });
+        } catch (e) { return null; }
+    }
+
+    // ══════════════════════════
+    //  Toggle Editor Pane
+    // ══════════════════════════
+    function toggleEditor() {
+        editorHidden = !editorHidden;
+        document.getElementById('editor-wrapper').classList.toggle('hidden-editor', editorHidden);
+        document.querySelector('.editor-divider').classList.toggle('hidden-editor', editorHidden);
+        const btn = document.getElementById('btn-toggle-editor');
+        btn.style.opacity = editorHidden ? '0.5' : '1';
+        btn.title = editorHidden ? '顯示編輯區' : '隱藏編輯區';
+    }
+
+    // ══════════════════════════
+    //  Folder Picker & Tree
+    // ══════════════════════════
+    async function openFolder() {
+        try {
+            const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            rootHandle = handle;
+            pathStack = [{ name: handle.name, handle: handle }];
+            await saveFolderHandle(handle);
+            await navigateToCurrentFolder();
+        } catch (e) {
+            if (e.name !== 'AbortError') showToast('無法開啟資料夾：' + e.message, true);
+        }
+    }
+
+    async function navigateToCurrentFolder() {
+        const currentHandle = pathStack[pathStack.length - 1].handle;
+        folderHandle = currentHandle;
+
+        // Scan entries
+        fileHandles = [];
+        subfolders = [];
+        for await (const entry of currentHandle.values()) {
+            if (entry.kind === 'directory') {
+                subfolders.push({ name: entry.name, handle: entry });
+            } else if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.md')) {
+                fileHandles.push({ name: entry.name, handle: entry });
+            }
+        }
+        fileHandles.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
+        subfolders.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
+
+        // Update UI
+        const pathEl = document.getElementById('folder-path');
+        pathEl.textContent = '📁 ' + pathStack.map(p => p.name).join(' / ');
+        pathEl.style.display = 'block';
+
+        renderFolderTree();
+        document.getElementById('search-container').classList.add('show');
+        searchTerm = '';
+        document.getElementById('search-input').value = '';
+        document.getElementById('search-clear').classList.remove('show');
+        applyFilter();
+    }
+
+    function renderFolderTree() {
+        const treeEl = document.getElementById('folder-tree');
+        const breadcrumbEl = document.getElementById('tree-breadcrumb');
+        const sublistEl = document.getElementById('tree-subfolder-list');
+
+        // Always show tree once a folder is open
+        treeEl.classList.add('show');
+
+        // Breadcrumb
+        let bc = '';
+        pathStack.forEach((item, i) => {
+            const isLast = i === pathStack.length - 1;
+            if (i > 0) bc += '<span class="breadcrumb-sep">›</span>';
+            if (isLast) {
+                bc += `<span class="breadcrumb-item current">${item.name}</span>`;
+            } else {
+                bc += `<span class="breadcrumb-item" onclick="navigateToBreadcrumb(${i})">${item.name}</span>`;
+            }
+        });
+        breadcrumbEl.innerHTML = bc;
+
+        // Subfolders + parent (..)
+        let html = '';
+        // Show go-up if we're deeper than root
+        if (pathStack.length > 1) {
+            html += `<div class="tree-folder-item tree-parent-item" onclick="navigateUp()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                <span>.. 上一層</span>
+            </div>`;
+        }
+        subfolders.forEach((sf, i) => {
+            html += `<div class="tree-folder-item" onclick="navigateInto(${i})">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                <span>${sf.name}</span>
+            </div>`;
+        });
+
+        if (!html && pathStack.length <= 1) {
+            sublistEl.innerHTML = '<div style="padding:6px 10px;font-size:12px;color:var(--text-muted);">沒有子資料夾</div>';
+        } else {
+            sublistEl.innerHTML = html;
+        }
+    }
+
+    async function navigateInto(subIndex) {
+        const sf = subfolders[subIndex];
+        pathStack.push({ name: sf.name, handle: sf.handle });
+        await navigateToCurrentFolder();
+    }
+
+    async function navigateUp() {
+        if (pathStack.length > 1) {
+            pathStack.pop();
+            await navigateToCurrentFolder();
+        }
+    }
+
+    async function navigateToBreadcrumb(index) {
+        pathStack = pathStack.slice(0, index + 1);
+        await navigateToCurrentFolder();
+    }
+
+    // ══════════════════════════
+    //  Search / Filter
+    // ══════════════════════════
+    function onSearchInput() {
+        searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
+        document.getElementById('search-clear').classList.toggle('show', searchTerm.length > 0);
+        applyFilter();
+    }
+
+    function onSearchKeydown(e) {
+        if (e.key === 'Escape') { clearSearch(); e.target.blur(); }
+        // Enter = open first match
+        if (e.key === 'Enter' && filteredIndices.length > 0) {
+            openFile(filteredIndices[0]);
+        }
+    }
+
+    function clearSearch() {
+        searchTerm = '';
+        document.getElementById('search-input').value = '';
+        document.getElementById('search-clear').classList.remove('show');
+        applyFilter();
+    }
+
+    function applyFilter() {
+        if (!searchTerm) {
+            filteredIndices = fileHandles.map((_, i) => i);
+        } else {
+            filteredIndices = [];
+            fileHandles.forEach((f, i) => {
+                if (f.name.toLowerCase().includes(searchTerm)) filteredIndices.push(i);
+            });
+        }
+        renderFileList();
+    }
+
+    function highlightMatch(name) {
+        if (!searchTerm) return name;
+        const lower = name.toLowerCase();
+        const idx = lower.indexOf(searchTerm);
+        if (idx === -1) return name;
+        const before = name.substring(0, idx);
+        const match = name.substring(idx, idx + searchTerm.length);
+        const after = name.substring(idx + searchTerm.length);
+        return `${before}<span class="highlight">${match}</span>${after}`;
+    }
+
+    function renderFileList() {
+        const container = document.getElementById('file-list');
+        const statusSearch = document.getElementById('status-search');
+
+        if (fileHandles.length === 0) {
+            container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg><div>點擊上方按鈕<br>選擇包含 .md 檔案的資料夾</div></div>';
+            statusSearch.style.display = 'none';
+            return;
+        }
+
+        if (filteredIndices.length === 0) {
+            container.innerHTML = `<div class="empty-state" style="padding:20px;">找不到「${searchTerm}」相關的檔案</div>`;
+            statusSearch.style.display = 'inline-flex';
+            statusSearch.textContent = `搜尋: 0/${fileHandles.length}`;
+            return;
+        }
+
+        container.innerHTML = filteredIndices.map(i => {
+            const f = fileHandles[i];
+            return `<div class="file-item ${f.name === currentFileName ? 'active' : ''}" onclick="openFile(${i})" title="${f.name}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                <span>${highlightMatch(f.name)}</span>
+            </div>`;
+        }).join('');
+
+        if (searchTerm) {
+            container.innerHTML += `<div class="file-count">找到 ${filteredIndices.length} / ${fileHandles.length} 個檔案</div>`;
+            statusSearch.style.display = 'inline-flex';
+            statusSearch.textContent = `搜尋: ${filteredIndices.length}/${fileHandles.length}`;
+        } else {
+            container.innerHTML += `<div class="file-count">${fileHandles.length} 個 .md 檔案</div>`;
+            statusSearch.style.display = 'none';
+        }
+    }
+
+    // 組相對路徑：包含根資料夾名稱 + 子資料夾 + 檔名
+    // 例如 pathStack = [TEST_A, SUB_1] + file.name → "TEST_A\SUB_1\CLAUDE.md"
+    // pathStack = [SUB_1] (使用者直接選 SUB_1 當根) + file.name → "SUB_1\CLAUDE.md"
+    function buildRelativePath(filename) {
+        if (pathStack.length === 0) return filename;
+        const folderPath = pathStack.map(p => p.name).join('\\');
+        return folderPath + '\\' + filename;
+    }
+
+    // ══════════════════════════
+    //  File Open / Save / Export
+    // ══════════════════════════
+    async function openFile(index) {
+        if (isUnsaved && !confirm('目前的修改尚未儲存，確定要切換檔案嗎？')) return;
+        const entry = fileHandles[index];
+        const file = await entry.handle.getFile();
+        const text = await file.text();
+        currentFileHandle = entry.handle;
+        currentFileName = entry.name;
+        currentFilePath = buildRelativePath(entry.name);
+        isUnsaved = false;
+        document.getElementById('input-area').value = text;
+        updatePreview();
+        updateStatus();
+        renderFileList();
+    }
+
+    async function saveFile() {
+        if (!currentFileHandle) {
+            // No writable handle (e.g. drag-drop or new file) → prompt save-as
+            showToast('⚠️ 此檔案無法直接覆蓋，請使用「另存新檔」選擇儲存位置', true);
+            saveAsFile();
+            return;
+        }
+        try {
+            const writable = await currentFileHandle.createWritable();
+            await writable.write(document.getElementById('input-area').value);
+            await writable.close();
+            isUnsaved = false;
+            updateStatus();
+            showToast('✅ 已儲存 ' + currentFileName);
+        } catch (e) {
+            showToast('儲存失敗：' + e.message, true);
+        }
+    }
+
+    async function saveAsFile() {
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: currentFileName || 'untitled.md',
+                types: [{
+                    description: 'Markdown 檔案',
+                    accept: { 'text/markdown': ['.md'] }
+                }]
+            });
+            const writable = await handle.createWritable();
+            await writable.write(document.getElementById('input-area').value);
+            await writable.close();
+            // Update current handle to the new file
+            currentFileHandle = handle;
+            currentFileName = handle.name;
+            isUnsaved = false;
+            updateStatus();
+            showToast('✅ 已另存為 ' + handle.name);
+        } catch (e) {
+            if (e.name !== 'AbortError') showToast('另存失敗：' + e.message, true);
+        }
+    }
+
+    async function copyMarkdown() {
+        const text = document.getElementById('input-area').value;
+        if (!text) { showToast('編輯器內沒有內容', true); return; }
+        try {
+            await navigator.clipboard.writeText(text);
+            showToast('📋 已複製 Markdown 內容到剪貼簿');
+        } catch (e) {
+            // Fallback for older browsers
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('📋 已複製 Markdown 內容到剪貼簿');
+        }
+    }
+
+    // ══════════════════════════
+    //  Markdown Editing
+    // ══════════════════════════
+    function addMarkdown(start, end = '') {
+        const textarea = document.getElementById('input-area');
+        const scrollTop = textarea.scrollTop;
+        const { selectionStart, selectionEnd, value } = textarea;
+        const selectedText = value.substring(selectionStart, selectionEnd);
+        textarea.value = value.substring(0, selectionStart) + start + selectedText + end + value.substring(selectionEnd);
+        const cursorPos = selectionStart + start.length + selectedText.length;
+        textarea.setSelectionRange(cursorPos, cursorPos);
+        textarea.scrollTop = scrollTop;
+        textarea.focus();
+        onEditorInput();
+    }
+
+    function insertLink(type) {
+        if (type === 'text') addMarkdown('[文字連結](http://)');
+        else if (type === 'url') addMarkdown('<http://>');
+        else if (type === 'image') addMarkdown('![alt text](http://)');
+    }
+
+    function insertTable() {
+        const cols = parseInt(prompt('輸入表格欄數:', 3));
+        if (isNaN(cols) || cols < 1) return;
+        let md = '| ' + Array.from({length: cols}, (_, i) => `欄位${i+1}`).join(' | ') + ' |\n';
+        md += '| ' + Array(cols).fill(':---:').join(' | ') + ' |\n';
+        for (let r = 0; r < 2; r++) {
+            md += '| ' + Array(cols).fill('內容').join(' | ') + ' |\n';
+        }
+        addMarkdown(md);
+    }
+
+    function onEditorInput() {
+        if (!isUnsaved) { isUnsaved = true; updateStatus(); }
+        updatePreview();
+        renderLineNumbers();
+    }
+
+    // ══════════════════════════
+    //  Line Numbers
+    // ══════════════════════════
+    let _lastLineCount = -1;
+
+    function renderLineNumbers() {
+        const ta = document.getElementById('input-area');
+        const ln = document.getElementById('line-numbers');
+        if (!ta || !ln) return;
+
+        const text = ta.value;
+        const count = text.length === 0 ? 1 : text.split('\n').length;
+
+        // 僅在行數變動時重建 DOM，避免每次輸入都重繪
+        if (count !== _lastLineCount) {
+            let html = '';
+            for (let i = 1; i <= count; i++) {
+                html += '<span class="ln" data-line="' + i + '">' + i + '</span>';
+            }
+            ln.innerHTML = html;
+            _lastLineCount = count;
+
+            // 依最大位數自動調整寬度
+            const digits = String(count).length;
+            ln.style.minWidth = (24 + digits * 9) + 'px';
+        }
+
+        syncLineNumbersScroll();
+        updateActiveLine();
+    }
+
+    function syncLineNumbersScroll() {
+        const ta = document.getElementById('input-area');
+        const ln = document.getElementById('line-numbers');
+        if (ta && ln) ln.scrollTop = ta.scrollTop;
+    }
+
+    function updateActiveLine() {
+        const ta = document.getElementById('input-area');
+        const ln = document.getElementById('line-numbers');
+        if (!ta || !ln) return;
+        const before = ta.value.substring(0, ta.selectionStart);
+        const lineIdx = before.split('\n').length; // 1-based
+        const prev = ln.querySelector('.ln.active');
+        if (prev) prev.classList.remove('active');
+        const cur = ln.querySelector('.ln[data-line="' + lineIdx + '"]');
+        if (cur) cur.classList.add('active');
+    }
+
+    // ── YAML Front Matter handling ──
+    function preprocessMarkdown(md) {
+        // Detect YAML front matter: must start at line 1 with ---
+        const fmRegex = /^---\r?\n([\s\S]*?)\r?\n---/;
+        const match = md.match(fmRegex);
+        if (match) {
+            const yamlContent = match[1];
+            const rest = md.substring(match[0].length);
+            // Render front matter as a styled info block
+            const escaped = yamlContent
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const fmHtml = `<div class="frontmatter-block"><div class="frontmatter-label">YAML Front Matter</div><pre><code>${escaped}</code></pre></div>`;
+            return fmHtml + marked.parse(rest);
+        }
+        return marked.parse(md);
+    }
+
+    // 為容器內所有 <pre> 區塊注入複製按鈕
+    function injectCodeCopyButtons(container) {
+        if (!container) return;
+        const pres = container.querySelectorAll('pre');
+        pres.forEach(pre => {
+            // 避免重複注入
+            if (pre.querySelector(':scope > .code-copy-btn')) return;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'code-copy-btn';
+            btn.textContent = '複製';
+            btn.title = '複製此程式區塊';
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const codeEl = pre.querySelector('code');
+                const text = codeEl ? codeEl.innerText : pre.innerText;
+                try {
+                    await navigator.clipboard.writeText(text);
+                } catch (err) {
+                    // Fallback：建立暫時 textarea 用 execCommand
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { document.execCommand('copy'); } catch (_) {}
+                    document.body.removeChild(ta);
+                }
+                btn.classList.add('copied');
+                btn.textContent = '✅ 已複製';
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.textContent = '複製';
+                }, 1500);
+            });
+            pre.appendChild(btn);
+        });
+    }
+
+    function updatePreview() {
+        const md = document.getElementById('input-area').value;
+        const html = preprocessMarkdown(md);
+        const previewArea = document.getElementById('preview-area');
+        const fullscreenContent = document.getElementById('fullscreen-content');
+        previewArea.innerHTML = html;
+        fullscreenContent.innerHTML = html;
+        injectCodeCopyButtons(previewArea);
+        injectCodeCopyButtons(fullscreenContent);
+        updateStatus();
+        renderLineNumbers();
+    }
+
+    function updateStatus() {
+        const text = document.getElementById('input-area').value;
+        const dot = isUnsaved ? '<span class="unsaved-dot"></span>' : '';
+        let fileLabel = '未開啟檔案';
+        if (currentFileName) {
+            const mode = currentFileHandle
+                ? '<span style="color:var(--green);">●</span>'
+                : '<span style="color:var(--peach);" title="無法直接覆蓋，需另存新檔">◐</span>';
+            fileLabel = `${mode} ${currentFileName}${dot}`;
+        }
+        document.getElementById('status-file').innerHTML = fileLabel;
+        document.getElementById('status-chars').textContent = `${text.length} 字元`;
+        document.getElementById('status-lines').textContent = `${text ? text.split('\n').length : 0} 行`;
+        // 同步更新左側預覽標題（顯示相對路徑）
+        const aFilename = document.getElementById('preview-a-filename');
+        if (aFilename) {
+            const display = currentFilePath || currentFileName;
+            aFilename.textContent = display ? ('📄 ' + display) : '尚未載入檔案';
+            aFilename.title = display; // hover 顯示完整路徑
+        }
+    }
+
+    // ══════════════════════════
+    //  UI Controls
+    // ══════════════════════════
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+    }
+
+    function toggleFullscreen() {
+        const fs = document.getElementById('fullscreen-preview');
+        fs.style.display = fs.style.display === 'block' ? 'none' : 'block';
+    }
+
+    // ══════════════════════════
+    //  Dual Preview
+    // ══════════════════════════
+    let dualPreviewActive = false;
+    let previewBContent = ''; // 右側目前顯示的 HTML
+
+    function toggleDualPreview() {
+        dualPreviewActive = !dualPreviewActive;
+        const container = document.getElementById('preview-container');
+        const btn       = document.getElementById('btn-dual-preview');
+
+        if (dualPreviewActive) {
+            container.classList.replace('single', 'dual');
+            btn.style.opacity = '1';
+            btn.style.boxShadow = '0 0 0 1.5px var(--accent)';
+            btn.title = '關閉並排預覽';
+            initPreviewDividerDrag();
+        } else {
+            container.classList.replace('dual', 'single');
+            btn.style.opacity = '0.5';
+            btn.style.boxShadow = '';
+            btn.title = '並排雙預覽';
+        }
+    }
+
+    // ══════════════════════════
+    //  右側預覽獨立授權資料夾
+    // ══════════════════════════
+    async function authorizeRightFolder() {
+        try {
+            const handle = await window.showDirectoryPicker({ mode: 'read' });
+            rightRootHandle = handle;
+            const btn = document.getElementById('btn-auth-folder-b');
+            btn.textContent = '📁 ' + handle.name;
+            btn.title = '目前授權：' + handle.name + '（點擊可重選）';
+            showToast('✅ 已授權資料夾：' + handle.name + '（右側拖入/載入此資料夾內檔案時會顯示完整路徑）');
+        } catch (e) {
+            if (e.name !== 'AbortError') showToast('授權失敗：' + e.message, true);
+        }
+    }
+
+    // 通用：嘗試用兩個 rootHandle 解析路徑（優先右側獨立授權，再用側邊欄的）
+    async function resolveFilePath(fileHandle, originalName) {
+        if (!fileHandle) return originalName;
+        // 優先嘗試右側獨立授權的資料夾
+        if (rightRootHandle) {
+            try {
+                const rel = await rightRootHandle.resolve(fileHandle);
+                if (rel && rel.length >= 1) {
+                    return rightRootHandle.name + '\\' + rel.join('\\');
+                }
+            } catch (e) {}
+        }
+        // 再嘗試左側側邊欄的
+        if (rootHandle) {
+            try {
+                const rel = await rootHandle.resolve(fileHandle);
+                if (rel && rel.length >= 1) {
+                    return rootHandle.name + '\\' + rel.join('\\');
+                }
+            } catch (e) {}
+        }
+        return originalName;
+    }
+
+    // 右側：用檔案選擇器載入
+    async function loadFileToPreviewB() {
+        try {
+            const [handle] = await window.showOpenFilePicker({
+                types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.markdown'] } }],
+                multiple: false
+            });
+            const file = await handle.getFile();
+            const text = await file.text();
+            const filepath = await resolveFilePath(handle, file.name);
+            renderPreviewB(text, file.name, filepath);
+        } catch (e) {
+            if (e.name !== 'AbortError') showToast('無法開啟檔案：' + e.message, true);
+        }
+    }
+
+    // 右側：從側邊欄目前選取的檔案載入
+    async function loadFromSidebarToB() {
+        if (!currentFileName || !currentFileHandle) {
+            showToast('請先在側邊欄開啟一個檔案', true);
+            return;
+        }
+        // 如果側邊欄目前開的正是左側在編輯的那個，提示但仍允許
+        const file = await currentFileHandle.getFile();
+        const text = await file.text();
+        renderPreviewB(text, file.name);
+        showToast('✅ 已將 ' + file.name + ' 載入右側預覽');
+    }
+
+    function renderPreviewB(mdText, filename, filepath) {
+        const html = preprocessMarkdown(mdText);
+        previewBContent = html;
+        const area = document.getElementById('preview-area-b');
+        area.innerHTML = html;
+        injectCodeCopyButtons(area);
+        const display = filepath || filename;
+        const el = document.getElementById('preview-b-filename');
+        el.textContent = '📄 ' + display;
+        el.title = display; // hover 顯示完整
+        // 套用拖曳捲動
+        enableDragScroll(area);
+        // 套用同步捲動
+        setupSyncScroll();
+    }
+
+    // ══════════════════════════
+    //  Sync Scroll
+    // ══════════════════════════
+    let _syncScrollBound = false;
+    let _scrollingFrom = null; // 'a' | 'b' | null，防止互觸發
+
+    function setupSyncScroll() {
+        if (_syncScrollBound) return; // 只綁一次
+        _syncScrollBound = true;
+
+        const a = document.getElementById('preview-area');
+        const b = document.getElementById('preview-area-b');
+
+        a.addEventListener('scroll', () => {
+            if (!document.getElementById('chk-sync-scroll').checked) return;
+            if (_scrollingFrom === 'b') return;
+            _scrollingFrom = 'a';
+
+            const aMax = a.scrollHeight - a.clientHeight;
+            if (aMax <= 0) { _scrollingFrom = null; return; }
+            const ratio = a.scrollTop / aMax;
+            const bMax = b.scrollHeight - b.clientHeight;
+            if (bMax > 0) b.scrollTop = ratio * bMax;
+
+            requestAnimationFrame(() => { _scrollingFrom = null; });
+        });
+
+        b.addEventListener('scroll', () => {
+            if (!document.getElementById('chk-sync-scroll').checked) return;
+            if (_scrollingFrom === 'a') return;
+            _scrollingFrom = 'b';
+
+            const bMax = b.scrollHeight - b.clientHeight;
+            if (bMax <= 0) { _scrollingFrom = null; return; }
+            const ratio = b.scrollTop / bMax;
+            const aMax = a.scrollHeight - a.clientHeight;
+            if (aMax > 0) a.scrollTop = ratio * aMax;
+
+            requestAnimationFrame(() => { _scrollingFrom = null; });
+        });
+    }
+
+    // ══════════════════════════
+    //  Preview Divider Drag
+    // ══════════════════════════
+    let _dividerBound = false;
+
+    function initPreviewDividerDrag() {
+        if (_dividerBound) return;
+        _dividerBound = true;
+
+        const divider  = document.getElementById('preview-divider');
+        const row      = document.getElementById('preview-row');
+        const areaA    = document.getElementById('preview-area');
+        const areaB    = document.getElementById('preview-area-b-wrap');
+        let dragging = false;
+
+        divider.addEventListener('mousedown', (e) => {
+            dragging = true;
+            divider.classList.add('active');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            const rowRect = row.getBoundingClientRect();
+            const divW = divider.offsetWidth;
+            let leftW = e.clientX - rowRect.left;
+            const total = rowRect.width - divW;
+            // 限制最小 120px
+            leftW = Math.max(120, Math.min(leftW, total - 120));
+            const rightW = total - leftW;
+            areaA.style.flex = 'none';
+            areaA.style.width = leftW + 'px';
+            areaB.style.flex = 'none';
+            areaB.style.width = rightW + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (!dragging) return;
+            dragging = false;
+            divider.classList.remove('active');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        });
+    }
+
+    function printContent() {
+        const content = document.getElementById('preview-area').innerHTML;
+        const win = window.open('', '', 'width=800,height=600');
+        win.document.write(`<html><head><title>列印</title>
+            <style>body{font-family:sans-serif;padding:20px;line-height:1.6;}
+            pre{background:#f5f5f5;padding:12px;border-radius:6px;overflow-x:auto;}
+            code{font-family:monospace;background:#f5f5f5;padding:1px 4px;border-radius:3px;}
+            table{border-collapse:collapse;width:100%;}th,td{border:1px solid #ccc;padding:6px 10px;}
+            blockquote{border-left:3px solid #89b4fa;padding:6px 12px;margin:0;background:#f8f8fc;}
+            </style></head><body>${content}</body></html>`);
+        win.document.close();
+        win.print();
+    }
+
+    function showToast(msg, isError = false) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.borderColor = isError ? 'var(--red)' : 'var(--green)';
+        t.style.color = isError ? 'var(--red)' : 'var(--green)';
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    // ══════════════════════════
+    //  Keyboard Shortcuts
+    // ══════════════════════════
+    document.addEventListener('keydown', (e) => {
+        // Ctrl+S save
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveFile(); }
+        // Ctrl+P / Ctrl+F focus search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+            e.preventDefault();
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar.classList.contains('collapsed')) sidebar.classList.remove('collapsed');
+            document.getElementById('search-input').focus();
+        }
+    });
+
+    // ══════════════════════════
+    //  Drag & Drop .md files（支援雙預覽左右分流）
+    // ══════════════════════════
+    let dragCounter = 0;
+
+    // 判斷目前是否為雙預覽模式
+    function isDualMode() {
+        return dualPreviewActive;
+    }
+
+    // 根據游標 X 位置判斷要落到左或右
+    function getDropSide(clientX) {
+        const row = document.getElementById('preview-row');
+        if (!row) return 'left';
+        const rect = row.getBoundingClientRect();
+        const mid  = rect.left + rect.width / 2;
+        return clientX < mid ? 'left' : 'right';
+    }
+
+    // 更新雙預覽 overlay 的高亮側
+    function updateDualOverlayHover(clientX) {
+        const side = getDropSide(clientX);
+        document.getElementById('drop-half-left').classList.toggle('active', side === 'left');
+        document.getElementById('drop-half-right').classList.toggle('active', side === 'right');
+    }
+
+    document.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        dragCounter++;
+        if (dragCounter === 1) {
+            if (isDualMode()) {
+                document.getElementById('drop-overlay-dual').classList.add('show');
+                updateDualOverlayHover(e.clientX);
+            } else {
+                document.getElementById('drop-overlay').classList.add('show');
+            }
+        }
+    });
+
+    document.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dragCounter--;
+        if (dragCounter <= 0) {
+            dragCounter = 0;
+            document.getElementById('drop-overlay').classList.remove('show');
+            document.getElementById('drop-overlay-dual').classList.remove('show');
+            document.getElementById('drop-half-left').classList.remove('active');
+            document.getElementById('drop-half-right').classList.remove('active');
+        }
+    });
+
+    document.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        // 雙預覽模式：即時更新左右高亮
+        if (isDualMode() && document.getElementById('drop-overlay-dual').classList.contains('show')) {
+            updateDualOverlayHover(e.clientX);
+        }
+    });
+
+    document.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        dragCounter = 0;
+        document.getElementById('drop-overlay').classList.remove('show');
+        document.getElementById('drop-overlay-dual').classList.remove('show');
+        document.getElementById('drop-half-left').classList.remove('active');
+        document.getElementById('drop-half-right').classList.remove('active');
+
+        // 決定落點：雙預覽時依 X 座標，單預覽一律左側（主編輯器）
+        const dropSide = isDualMode() ? getDropSide(e.clientX) : 'left';
+
+        // 取得檔案
+        let fileHandle = null;
+        let file = null;
+        let webkitRelativePath = ''; // 拖曳資料夾時會有 (例如: "TEST_A/SUB_1/CLAUDE.md")
+
+        if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+            for (const item of e.dataTransfer.items) {
+                if (item.kind === 'file') {
+                    const f = item.getAsFile();
+                    if (f && f.name.toLowerCase().endsWith('.md')) {
+                        file = f;
+                        if (typeof item.getAsFileSystemHandle === 'function') {
+                            try { fileHandle = await item.getAsFileSystemHandle(); }
+                            catch (ex) { fileHandle = null; }
+                        }
+                        // 嘗試從 webkit entry 拿 fullPath（用於拖曳資料夾內檔案時）
+                        if (typeof item.webkitGetAsEntry === 'function') {
+                            try {
+                                const entry = item.webkitGetAsEntry();
+                                if (entry && entry.fullPath) {
+                                    webkitRelativePath = entry.fullPath.replace(/^\//, '').replace(/\//g, '\\');
+                                }
+                            } catch (ex) {}
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        if (!file) {
+            const files = [...e.dataTransfer.files].filter(f => f.name.toLowerCase().endsWith('.md'));
+            if (files.length > 0) file = files[0];
+        }
+        if (!file) { showToast('請拖入 .md 檔案', true); return; }
+
+        const text = await file.text();
+
+        // 解析路徑：依落點決定優先的 rootHandle（右側用 rightRootHandle，左側用 rootHandle）
+        async function resolveDroppedPath(side) {
+            // 優先 handle（依落點）
+            const primaryRoot = side === 'right' ? rightRootHandle : rootHandle;
+            // 備用 handle（另一側，順便多試一次）
+            const secondaryRoot = side === 'right' ? rootHandle : rightRootHandle;
+
+            if (fileHandle) {
+                // 試 primary
+                if (primaryRoot) {
+                    try {
+                        const rel = await primaryRoot.resolve(fileHandle);
+                        if (rel && rel.length >= 1) {
+                            return primaryRoot.name + '\\' + rel.join('\\');
+                        }
+                    } catch (e) {}
+                }
+                // 試 secondary
+                if (secondaryRoot) {
+                    try {
+                        const rel = await secondaryRoot.resolve(fileHandle);
+                        if (rel && rel.length >= 1) {
+                            return secondaryRoot.name + '\\' + rel.join('\\');
+                        }
+                    } catch (e) {}
+                }
+            }
+            // 備用：webkit fullPath
+            if (webkitRelativePath && webkitRelativePath !== file.name) {
+                return webkitRelativePath;
+            }
+            return file.name;
+        }
+
+        if (dropSide === 'right') {
+            // ── 右側預覽 ──
+            const filepath = await resolveDroppedPath('right');
+            renderPreviewB(text, file.name, filepath);
+            showToast('📄 已載入到右側預覽：' + filepath);
+        } else {
+            // ── 左側 / 主編輯器 ──
+            if (isUnsaved && !confirm('目前的修改尚未儲存，確定要載入新檔案嗎？')) return;
+            currentFileHandle = fileHandle;
+            currentFileName = file.name;
+            currentFilePath = await resolveDroppedPath('left');
+            isUnsaved = false;
+            document.getElementById('input-area').value = text;
+            updatePreview();
+            updateStatus();
+            renderFileList();
+            if (fileHandle) {
+                showToast('📄 已載入 ' + file.name + '（可直接儲存）');
+            } else {
+                showToast('📄 已載入 ' + file.name + '（儲存時需另存新檔）');
+            }
+        }
+    });
+
+    // ══════════════════════════
+    //  Drag-to-Scroll (Preview)
+    // ══════════════════════════
+    function enableDragScroll(el) {
+        let isDown = false;
+        let isDragging = false;   // 真正進入拖曳模式（超過距離門檻）
+        let startY, startX, scrollTop;
+        const DRAG_THRESHOLD = 6; // 超過 6px 才視為拖曳，否則允許文字選取
+
+        el.classList.add('drag-scrollable');
+
+        el.addEventListener('mousedown', (e) => {
+            // 只處理左鍵，且不攔截連結、按鈕、輸入框等互動元素的點擊
+            if (e.button !== 0) return;
+            const tag = e.target.tagName.toLowerCase();
+            if (tag === 'a' || tag === 'button' || tag === 'input' || tag === 'textarea' || tag === 'select') return;
+            if (e.target.closest('a')) return;
+
+            isDown = true;
+            isDragging = false;
+            startY = e.pageY;
+            startX = e.pageX;
+            scrollTop = el.scrollTop;
+            // 不在這裡加 dragging class，等確認是拖曳後才加
+        });
+
+        el.addEventListener('mouseleave', () => {
+            if (isDown) {
+                isDown = false;
+                isDragging = false;
+                el.classList.remove('dragging');
+            }
+        });
+
+        el.addEventListener('mouseup', () => {
+            isDown = false;
+            isDragging = false;
+            el.classList.remove('dragging');
+        });
+
+        el.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+
+            const dy = e.pageY - startY;   // 只看垂直位移
+            const dx = e.pageX - startX;   // 水平位移只用來否決
+
+            if (!isDragging) {
+                // 水平移動比垂直多 → 使用者在橫向拖選文字，完全放行
+                if (Math.abs(dx) > Math.abs(dy)) return;
+                // 垂直移動未超過門檻 → 還不算拖曳
+                if (Math.abs(dy) < DRAG_THRESHOLD) return;
+                isDragging = true;
+                el.classList.add('dragging');
+            }
+
+            // 確認是垂直拖曳後才阻止預設行為
+            e.preventDefault();
+            const walk = dy * 1.5;
+            el.scrollTop = scrollTop - walk;
+        });
+    }
+
+    // 套用到預覽區 & 全螢幕預覽
+    enableDragScroll(document.getElementById('preview-area'));
+    enableDragScroll(document.getElementById('fullscreen-preview'));
+
+    // ══════════════════════════
+    //  Init
+    // ══════════════════════════
+
+    // 預設：收起側邊欄 & 收起編輯區，只顯示預覽視窗
+    document.getElementById('sidebar').classList.add('collapsed');
+    document.getElementById('editor-wrapper').classList.add('hidden-editor');
+    document.querySelector('.editor-divider').classList.add('hidden-editor');
+    document.getElementById('btn-toggle-editor').style.opacity = '0.5';
+    document.getElementById('btn-toggle-editor').title = '顯示編輯區';
+    document.getElementById('btn-dual-preview').style.opacity = '0.5';
+
+    updatePreview();
+    updateStatus();
+
+    if (!('showDirectoryPicker' in window)) {
+        document.getElementById('btn-open-folder').textContent = '⚠️ 瀏覽器不支援（請使用 Chrome/Edge）';
+        document.getElementById('btn-open-folder').disabled = true;
+        document.getElementById('btn-open-folder').style.opacity = '0.5';
+        document.getElementById('btn-open-folder').style.cursor = 'not-allowed';
+    }
+
+    // Restore last opened folder
+    (async function restoreLastFolder() {
+        try {
+            const handle = await loadFolderHandle();
+            if (!handle) return;
+
+            // Need to re-request permission (browser security)
+            const perm = await handle.requestPermission({ mode: 'readwrite' });
+            if (perm !== 'granted') {
+                // Show hint that last folder can be reopened
+                document.getElementById('folder-path').textContent = '⏎ 上次: ' + handle.name + '（點擊按鈕重新授權）';
+                document.getElementById('folder-path').style.display = 'block';
+                return;
+            }
+
+            rootHandle = handle;
+            pathStack = [{ name: handle.name, handle: handle }];
+            await navigateToCurrentFolder();
+            showToast('📂 已還原上次資料夾: ' + handle.name);
+        } catch (e) {
+            // Permission prompt requires user gesture; show hint instead
+            console.log('無法自動還原資料夾，需使用者手動操作:', e.message);
+            try {
+                const handle = await loadFolderHandle();
+                if (handle) {
+                    document.getElementById('folder-path').textContent = '⏎ 上次: ' + handle.name + '（點擊下方按鈕重新開啟）';
+                    document.getElementById('folder-path').style.display = 'block';
+                    // Override open button to try restore first
+                    document.getElementById('btn-open-folder').textContent = '📂 重新開啟: ' + handle.name;
+                    document.getElementById('btn-open-folder').onclick = async function() {
+                        try {
+                            const perm = await handle.requestPermission({ mode: 'readwrite' });
+                            if (perm === 'granted') {
+                                rootHandle = handle;
+                                pathStack = [{ name: handle.name, handle: handle }];
+                                await saveFolderHandle(handle);
+                                await navigateToCurrentFolder();
+                                showToast('📂 已還原: ' + handle.name);
+                                // Reset button for future clicks
+                                this.textContent = '📂 選擇資料夾';
+                                this.onclick = openFolder;
+                                return;
+                            }
+                        } catch (e2) {}
+                        // Fallback: open new folder picker
+                        this.textContent = '📂 選擇資料夾';
+                        this.onclick = openFolder;
+                        openFolder();
+                    };
+                }
+            } catch (e2) {}
+        }
+    })();
+</script>
+
+</body>
+</html>
