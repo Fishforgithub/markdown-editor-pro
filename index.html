@@ -1323,6 +1323,85 @@
     let rightRootHandle = null;  // 右側預覽獨立授權的資料夾（用於路徑解析）
 
     // ══════════════════════════
+    //  Marked：為標題加上 id（GFM 風格 slug，支援中文）
+    //  讓 TOC 內 [文字](#slug) 能正確錨點跳轉。
+    // ══════════════════════════
+    function slugifyHeading(text) {
+        // 1) 去除前後空白、轉小寫
+        // 2) 保留：Unicode 字母（含中文）、數字、空白、連字號
+        //    其餘標點（含全形句號、半形點、冒號、逗號、引號等）一律移除
+        // 3) 空白塞為連字號，連續連字號合併
+        return String(text)
+            .trim()
+            .toLowerCase()
+            .replace(/[^\p{L}\p{N}\s-]/gu, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+    }
+
+    // 為避免同一份文件出現重複標題造成重複 id，
+    // 每次 marked.parse() 之前重置計數器；同名 id 自動加 -1 / -2 …
+    let _headingIdCounts = {};
+    function uniqueHeadingId(base) {
+        if (!base) base = 'section';
+        const used = _headingIdCounts[base] || 0;
+        _headingIdCounts[base] = used + 1;
+        return used === 0 ? base : `${base}-${used}`;
+    }
+
+    if (typeof marked !== 'undefined') {
+        marked.use({
+            renderer: {
+                heading(token) {
+                    // marked v15：token = { tokens, depth, raw, text }
+                    const innerHtml = this.parser.parseInline(token.tokens);
+                    const id = uniqueHeadingId(slugifyHeading(token.text));
+                    return `<h${token.depth} id="${id}">${innerHtml}</h${token.depth}>\n`;
+                }
+            }
+        });
+    }
+
+    // ══════════════════════════
+    //  目錄錨點：平滑滾動到對應標題，不污染網址列
+    //  支援雙預覽 / 全螢幕預覽：以同一個容器內的 id 為優先目標
+    // ══════════════════════════
+    document.addEventListener('click', function(e) {
+        const anchor = e.target.closest('a');
+        if (!anchor) return;
+        const href = anchor.getAttribute('href');
+        if (!href || !href.startsWith('#') || href === '#') return;
+
+        // 解碼：避免中文被當成 %E4%B8%AD... 找不到
+        let id;
+        try {
+            id = decodeURIComponent(href.substring(1));
+        } catch (_) {
+            id = href.substring(1);
+        }
+        if (!id) return;
+
+        // 先在同一個預覽容器內找（避免雙預覽時錯跳到另一側）
+        const container = anchor.closest(
+            '#preview-area, #preview-area-b, #fullscreen-content, #fullscreen-preview'
+        );
+
+        let element = null;
+        if (container) {
+            try {
+                element = container.querySelector(`[id="${CSS.escape(id)}"]`);
+            } catch (_) { /* CSS.escape 不支援時 fallback */ }
+        }
+        if (!element) element = document.getElementById(id);
+
+        if (element) {
+            e.preventDefault();
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+
+    // ══════════════════════════
     //  Theme
     // ══════════════════════════
     function setTheme(theme) {
@@ -1759,6 +1838,8 @@
 
     // ── YAML Front Matter handling ──
     function preprocessMarkdown(md) {
+        // 每次完整解析重設標題 id 計數，避免跨次解析造成 -1 / -2 累加
+        _headingIdCounts = {};
         // Detect YAML front matter: must start at line 1 with ---
         const fmRegex = /^---\r?\n([\s\S]*?)\r?\n---/;
         const match = md.match(fmRegex);
