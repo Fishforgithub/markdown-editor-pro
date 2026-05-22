@@ -1406,6 +1406,20 @@
                     const innerHtml = this.parser.parseInline(token.tokens);
                     const id = uniqueHeadingId(slugifyHeading(token.text));
                     return `<h${token.depth} id="${id}">${innerHtml}</h${token.depth}>\n`;
+                },
+                // 外部連結（http(s)://）一律 target="_blank"；
+                // 內部錨點（#...）與其它協定（mailto:、相對路徑等）維持原本行為
+                link(token) {
+                    const innerHtml = this.parser.parseInline(token.tokens);
+                    const href = token.href || '';
+                    const isExternal = /^https?:\/\//i.test(href);
+                    const extraAttrs = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
+                    let titleAttr = '';
+                    if (token.title) {
+                        const escTitle = String(token.title).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+                        titleAttr = ` title="${escTitle}"`;
+                    }
+                    return `<a href="${href}"${titleAttr}${extraAttrs}>${innerHtml}</a>`;
                 }
             }
         });
