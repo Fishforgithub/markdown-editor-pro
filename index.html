@@ -2204,7 +2204,10 @@
     }
 
     function printContent() {
-        const content = document.getElementById('preview-area').innerHTML;
+        // 複製一份預覽內容，移除注入的「複製」按鈕後再列印，避免按鈕文字被印出
+        const clone = document.getElementById('preview-area').cloneNode(true);
+        clone.querySelectorAll('.code-copy-btn').forEach(btn => btn.remove());
+        const content = clone.innerHTML;
         const win = window.open('', '', 'width=800,height=600');
         win.document.write(`<html><head><title>列印</title>
             <style>body{font-family:sans-serif;padding:20px;line-height:1.6;}
